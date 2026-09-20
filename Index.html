@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Калькулятор разведения пептидов</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{
+  --bg:#ffffff; --text:#14171a; --hint:#8b95a1; --card:#f3f5f7;
+  --accent:#2ea6ff; --accent-text:#ffffff; --line:#e3e7ea;
+  --ok:#1fa97c; --warn:#e0912f; --err:#e0533d;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  padding-bottom:90px}
+.wrap{max-width:520px;margin:0 auto;padding:14px}
+h1{font-size:19px;margin:6px 0 16px}
+.step{margin-bottom:18px}
+.step-t{font-size:13px;color:var(--hint);text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:44px;padding:0 14px;border:1px solid var(--line);
+  background:var(--card);color:var(--text);border-radius:12px;font-size:15px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;line-height:1.15}
+.chip small{font-size:11px;color:var(--hint)}
+.chip.on{background:var(--accent);color:var(--accent-text);border-color:var(--accent)}
+.chip.on small{color:var(--accent-text);opacity:.85}
+.chip.sep{margin-left:auto}
+input[type=text],input[type=number]{width:100%;min-height:48px;padding:0 12px;
+  border:1px solid var(--line);border-radius:12px;background:var(--card);
+  color:var(--text);font-size:17px;outline:none}
+input:focus{border-color:var(--accent)}
+.row{display:flex;gap:8px;align-items:center}
+.row .grow{flex:1}
+select{min-height:48px;border:1px solid var(--line);border-radius:12px;
+  background:var(--card);color:var(--text);font-size:15px;padding:0 8px}
+.link{display:inline-block;margin-top:8px;font-size:13px;color:var(--accent);
+  cursor:pointer;text-decoration:underline}
+.stepper{display:flex;align-items:center;gap:10px}
+.sq{width:44px;height:44px;border:1px solid var(--line);background:var(--card);
+  border-radius:12px;font-size:20px;color:var(--text);cursor:pointer}
+.card{position:sticky;top:0;z-index:5;background:var(--bg);
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  margin:18px -14px;padding:14px}
+.card.example{border:1px dashed var(--line);border-radius:14px;margin:18px 0;
+  padding:12px 14px}
+.tag{font-size:11px;color:var(--hint);text-transform:uppercase;letter-spacing:.5px}
+.big{font-size:44px;font-weight:700;line-height:1.1;letter-spacing:-1px}
+.big.small{font-size:30px}
+.sub{color:var(--hint);font-size:14px;margin-top:2px}
+.tap{cursor:pointer;display:inline-block;border-bottom:2px dotted var(--hint)}
+#uIn{width:120px;font-size:34px;font-weight:700;text-align:center;height:60px}
+svg{display:block;width:100%;height:auto;touch-action:none;margin:10px 0 4px}
+.note{margin-top:8px;padding:9px 11px;border-radius:10px;font-size:14px}
+.note.ok{background:rgba(31,169,124,.12);color:var(--ok)}
+.note.warn{background:rgba(224,145,47,.13);color:var(--warn)}
+.note.err{background:rgba(224,83,61,.13);color:var(--err)}
+.note.info{background:var(--card);color:var(--hint)}
+.note button{margin-top:7px;margin-right:6px;min-height:40px;padding:0 12px;
+  border:none;border-radius:10px;background:var(--accent);color:var(--accent-text);
+  font-size:14px;cursor:pointer}
+.grid{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;
+  background:var(--card);border-radius:14px;padding:12px;margin-bottom:10px}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;font-size:14px}
+.facts b{font-size:17px;display:block}
+.facts span{color:var(--hint);font-size:12px}
+details{border-top:1px solid var(--line);padding:12px 0}
+summary{cursor:pointer;font-size:15px;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"▸ ";color:var(--hint)}
+details[open] summary::before{content:"▾ "}
+details div{font-size:14px;color:var(--hint);padding-top:8px}
+details p{margin:0 0 10px}
+.disc{font-size:12px;color:var(--hint);margin-top:18px;padding-top:12px;
+  border-top:1px solid var(--line)}
+#share{display:block;width:100%;min-height:50px;margin-top:14px;border:none;
+  border-radius:12px;background:var(--accent);color:var(--accent-text);
+  font-size:16px;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1 id="h1">Калькулятор разведения пептидов</h1>
+
+<div class="step">
+  <div class="step-t">1 · Флакон, мг</div>
+  <div class="chips" id="vials"></div>
+  <div class="row" style="margin-top:8px">
+    <input class="grow" id="vialCustom" type="text" inputmode="decimal" placeholder="своё значение, мг">
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-t">2 · Бактериостатическая вода, мл</div>
+  <div class="chips" id="waters"></div>
+  <div class="row" style="margin-top:8px">
+    <input class="grow" id="waterCustom" type="text" inputmode="decimal" placeholder="своё значение, мл">
+  </div>
+  <span class="link" id="pickWater">подобрать под ровные деления</span>
+</div>
+
+<div class="step">
+  <div class="step-t">3 · Разовая доза</div>
+  <div class="row">
+    <input class="grow" id="dose" type="text" inputmode="decimal" placeholder="доза">
+    <button class="sq" id="dMinus">–</button>
+    <button class="sq" id="dPlus">+</button>
+    <select id="unit"><option value="mg">мг</option><option value="mcg">мкг</option></select>
+  </div>
+  <div class="chips" id="doseChips" style="margin-top:8px"></div>
+  <div class="row" style="margin-top:10px">
+    <span class="grow" style="font-size:14px;color:var(--hint)">Инъекций в день</span>
+    <div class="stepper">
+      <button class="sq" id="pMinus">–</button>
+      <b id="perDay">1</b>
+      <button class="sq" id="pPlus">+</button>
+    </div>
+  </div>
+</div>
+
+<div class="card" id="card">
+  <div class="tag" id="tag">пример расчёта</div>
+  <div id="fwd">
+    <div class="big"><span class="tap" id="unitsBig">12</span> <span style="font-size:20px;font-weight:400">делений</span></div>
+    <div class="sub" id="subFwd">0,12 мл · 2,00 мг</div>
+  </div>
+  <div id="rev" style="display:none">
+    <div class="row"><input id="uIn" type="text" inputmode="numeric" value="12">
+      <span style="font-size:20px">делений</span></div>
+    <div class="big small" id="revDose" style="margin-top:8px">= 2,00 мг</div>
+    <div class="sub" id="subRev">0,12 мл</div>
+  </div>
+  <svg id="syr" viewBox="0 0 340 92" preserveAspectRatio="none"></svg>
+  <div class="sub" id="scaleName">U-100, 1 мл · цена деления 0,167 мг</div>
+  <div id="notes"></div>
+  <span class="link" id="flip">↔ посчитать наоборот: набрал N делений</span>
+</div>
+
+<div class="grid">
+  <svg id="vialSvg" viewBox="0 0 54 84" style="width:54px"></svg>
+  <div class="facts">
+    <div><b id="fDoses">25</b><span>доз во флаконе</span></div>
+    <div><b id="fDays">25</b><span>дней хватит</span></div>
+    <div><b id="fConc">16,7</b><span>мг/мл</span></div>
+    <div><b id="fUnit">0,167</b><span>мг на деление</span></div>
+  </div>
+</div>
+<div class="note info" id="loss">С учётом потерь на прокачку иглы — примерно 24 дня.</div>
+
+<button id="share">Скопировать расчёт</button>
+
+<details><summary>Формулы расчёта</summary><div id="formulas"></div></details>
+
+<details><summary>Мои флаконы</summary><div>
+  <div class="row"><input class="grow" id="saveName" type="text" placeholder="название, например «Флакон от 5 марта»">
+  <button class="sq" id="saveBtn" style="width:auto;padding:0 14px">✓</button></div>
+  <div id="savedList" style="margin-top:10px"></div>
+</div></details>
+
+<details><summary>Частые вопросы</summary><div>
+  <p><b>Что считает калькулятор.</b> Он переводит нужную дозу в число делений инсулинового шприца. Дозу задаёте вы или ваш врач — калькулятор только показывает, как её отмерить.</p>
+  <p><b>Что такое деления.</b> Это риски на шкале шприца U-100: сто делений равны одному миллилитру, одно деление — 0,01 мл. Это не международные единицы (МЕ).</p>
+  <p><b>Сколько воды добавлять.</b> Объём воды не меняет количество пептида, только концентрацию. Чем больше воды, тем крупнее и точнее набираемый объём. При 50 мг и 3 мл одно деление равно 0,167 мг.</p>
+  <p><b>Написано «набрать точно сложно».</b> Раствор слишком крепкий: доза занимает меньше пяти делений. Возьмите больше воды — доза в делениях вырастет пропорционально.</p>
+  <p><b>Почему получилось не целое число делений.</b> Поршень ставится только на риску. Калькулятор показывает обе соседние риски и насколько каждая отличается от желаемой дозы.</p>
+  <p><b>Насколько точны «доз во флаконе» и «дней».</b> Это простая арифметика без учёта остатка во флаконе и прокачки иглы. Планируйте небольшой запас.</p>
+</div></details>
+
+<div class="disc">Инструмент только пересчитывает дозу в деления шприца. Он не назначает дозировки, не подбирает препарат и не заменяет инструкцию к продукту и консультацию врача.</div>
+</div>
+
+<script>
+/* ---------- данные ---------- */
+const VIALS=[2,5,10,15,20,30,50];
+const WATERS=[1,2,3,5,8];
+const SYR={unitsPerMl:100,capacity:100,label:'U-100, 1 мл'};
+const HINT={2:[.2,.5],5:[.25,1],10:[.5,2],15:[.5,2],20:[1,2.5],30:[1,2.5],50:[1.7,2]};
+const VIAL_CAP_ML=10, MAX_CONC=40;
+
+let S={mg:50,water:3,doseMg:2,perDay:1,unit:'mg',rev:false,touched:false};
+
+/* ---------- математика ---------- */
+const mgPerUnit=(mg,w)=>mg/(w*SYR.unitsPerMl);
+function calc(s){
+  const conc=s.mg/s.water, mpu=mgPerUnit(s.mg,s.water);
+  const vol=s.doseMg/conc, units=vol*SYR.unitsPerMl;
+  const r=Math.round(units), actual=r*mpu;
+  const doses=Math.floor(s.mg/s.doseMg);
+  return{conc,mpu,vol,units,r,actual,
+    delta:s.doseMg?((actual-s.doseMg)/s.doseMg)*100:0,
+    exact:Math.abs(units-r)<1e-9,
+    down:Math.floor(units),up:Math.ceil(units),
+    doses,days:doses/s.perDay,realDays:Math.max(0,doses-1)/s.perDay,
+    zone:units<5?'low':units>SYR.capacity?'over':(units<10||units>40)?'edge':'good'};
+}
+function waterForUnits(mg,doseMg,target){return target*mg/(doseMg*SYR.unitsPerMl);}
+function bestWater(mg,doseMg){
+  let best=null;
+  for(let w=1;w<=8.001;w+=0.5){
+    const u=doseMg/(mg/w)*SYR.unitsPerMl;
+    if(u<8||u>SYR.capacity) continue;
+    const err=Math.abs(u-Math.round(u));
+    const bonus=WATERS.includes(w)?-0.02:0;
+    if(!best||err+bonus<best.score) best={w,score:err+bonus,u:Math.round(u)};
+  }
+  return best;
+}
+
+/* ---------- формат ---------- */
+const nf=(v,d)=>v.toFixed(d).replace('.',',');
+function fmtDose(mg){return mg<1?Math.round(mg*1000)+' мкг':nf(mg,2)+' мг';}
+function fmtDays(d){return d>=10?Math.floor(d):nf(d,1);}
+
+/* ---------- отрисовка чипов ---------- */
+function chips(el,arr,active,onPick,fmt){
+  el.innerHTML='';
+  arr.forEach(v=>{
+    const b=document.createElement('button');
+    b.className='chip'+(Math.abs(v.val-active)<1e-9?' on':'')+(v.sep?' sep':'');
+    b.innerHTML=v.label+(v.sub?'<small>'+v.sub+'</small>':'');
+    b.onclick=()=>{touch();onPick(v.val);};
+    el.appendChild(b);
+  });
+}
+function renderChips(){
+  chips(document.getElementById('vials'),
+    VIALS.map(v=>({val:v,label:v,sep:v===50})),S.mg,v=>{
+      S.mg=v; if(v===50){S.water=3;S.doseMg=2;}
+      document.getElementById('vialCustom').value=''; render();});
+  chips(document.getElementById('waters'),
+    WATERS.map(v=>({val:v,label:nf(v,0)})),S.water,v=>{
+      S.water=v;document.getElementById('waterCustom').value='';render();});
+  const range=HINT[S.mg]||[S.mg*0.03,S.mg*0.05], mpu=mgPerUnit(S.mg,S.water);
+  const from=Math.max(1,Math.round(range[0]/mpu)), to=Math.round(range[1]/mpu);
+  const list=[];
+  for(let u=from;u<=to&&list.length<5;u++) list.push({val:u*mpu,label:fmtDose(u*mpu),sub:u+' дел.'});
+  chips(document.getElementById('doseChips'),list,S.doseMg,v=>{S.doseMg=v;render();});
+}
+
+/* ---------- шприц ---------- */
+function drawSyringe(units){
+  const W=340,X0=14,X1=326,Y=52,H=26,cap=SYR.capacity;
+  const px=u=>X0+(X1-X0)*Math.min(Math.max(u,0),cap)/cap;
+  let t='';
+  for(let u=0;u<=cap;u++){
+    const big=u%10===0, x=px(u);
+    t+=`<line x1="${x}" y1="${Y-(big?9:5)}" x2="${x}" y2="${Y}" stroke="var(--hint)" stroke-width="${big?1.2:.6}"/>`;
+    if(big&&(cap<=50||u%20===0)) t+=`<text x="${x}" y="${Y-13}" font-size="9" fill="var(--hint)" text-anchor="middle">${u}</text>`;
+  }
+  const fw=px(units)-X0;
+  const col=units>cap?'var(--err)':units<5?'var(--warn)':'var(--accent)';
+  const m=px(units);
+  document.getElementById('syr').innerHTML=`
+    <rect x="${X0}" y="${Y}" width="${X1-X0}" height="${H}" rx="4" fill="var(--card)" stroke="var(--line)"/>
+    <rect x="${X0}" y="${Y}" width="${Math.max(0,fw)}" height="${H}" rx="4" fill="${col}" opacity=".85"
+      style="transition:width .25s ease"/>
+    <rect x="${Math.max(X0,m-3)}" y="${Y-3}" width="6" height="${H+6}" rx="2" fill="var(--text)"
+      style="transition:x .25s ease"/>
+    <line x1="${X1}" y1="${Y+H/2}" x2="${W-2}" y2="${Y+H/2}" stroke="var(--hint)" stroke-width="2"/>
+    <text x="${m}" y="${Y+H+16}" font-size="11" fill="var(--text)" text-anchor="middle"
+      font-weight="600">${units>cap?'не влезает':nf(units,units%1?1:0)}</text>`;
+}
+function drawVial(left,total){
+  const f=total?Math.max(0,Math.min(1,left/total)):0, h=44*f;
+  document.getElementById('vialSvg').innerHTML=`
+    <rect x="16" y="2" width="22" height="9" rx="2" fill="var(--hint)"/>
+    <rect x="10" y="11" width="34" height="62" rx="6" fill="var(--card)" stroke="var(--line)"/>
+    <rect x="13" y="${70-h}" width="28" height="${h}" rx="4" fill="var(--accent)" opacity=".7"
+      style="transition:all .3s"/>
+    <text x="27" y="82" font-size="9" fill="var(--hint)" text-anchor="middle">${Math.round(f*100)}%</text>`;
+}
+
+/* ---------- заметки ---------- */
+function notes(r){
+  const out=[];
+  if(!(S.mg>0)||!(S.water>0)||!(S.doseMg>0))
+    return [{c:'info',t:'Заполните флакон, воду и дозу.'}];
+  if(S.doseMg>S.mg) out.push({c:'err',t:'Разовая доза больше всего содержимого флакона.'});
+  if(S.water>VIAL_CAP_ML) out.push({c:'err',t:'Столько воды во флакон не войдёт — обычно до 10 мл.'});
+  if(r.conc>MAX_CONC) out.push({c:'warn',t:`Концентрация ${nf(r.conc,0)} мг/мл — проверьте растворимость по инструкции, возможно нужно больше воды.`});
+  if(r.zone==='low') out.push({c:'warn',t:`Всего ${nf(r.units,1)} дел. — набрать точно сложно.`,btn:'взять больше воды',act:'water'});
+  if(r.zone==='over') out.push({c:'warn',t:`Доза не помещается в шприц (${SYR.capacity} дел.). Нужен шприц больше или меньше воды.`});
+  if(r.exact&&r.zone==='good') out.push({c:'ok',t:'Ровно, без округления.'});
+  if(!r.exact&&r.zone!=='over'&&r.zone!=='low')
+    out.push({c:'warn',t:`${nf(r.units,1)} делений — такой риски на шкале нет.`,
+      two:[{u:r.down,mg:r.down*r.mpu},{u:r.up,mg:r.up*r.mpu}]});
+  if(r.days>60) out.push({c:'info',t:'Флакона хватает дольше обычного срока хранения разведённого раствора.'});
+  return out;
+}
+
+/* ---------- главный рендер ---------- */
+function render(){
+  const r=calc(S);
+  renderChips();
+  document.getElementById('unitsBig').textContent=r.exact?r.r:nf(r.units,1);
+  document.getElementById('subFwd').textContent=`${nf(r.vol,2)} мл · ${fmtDose(S.doseMg)}`;
+  document.getElementById('scaleName').textContent=
+    `${SYR.label} · цена деления ${fmtDose(r.mpu)}`;
+  drawSyringe(S.rev?parseFloat(document.getElementById('uIn').value)||0:r.units);
+  document.getElementById('fDoses').textContent=isFinite(r.doses)?r.doses:'—';
+  document.getElementById('fDays').textContent=isFinite(r.days)?fmtDays(r.days):'—';
+  document.getElementById('fConc').textContent=nf(r.conc,1);
+  document.getElementById('fUnit').textContent=fmtDose(r.mpu);
+  drawVial(1,1);
+  document.getElementById('loss').textContent=
+    `С учётом потерь на прокачку иглы — примерно ${fmtDays(r.realDays)} дн.`;
+
+  const nc=document.getElementById('notes'); nc.innerHTML='';
+  notes(r).forEach(n=>{
+    const d=document.createElement('div'); d.className='note '+n.c; d.textContent=n.t;
+    if(n.two) n.two.forEach(o=>{
+      const b=document.createElement('button');
+      b.textContent=`${o.u} дел · ${fmtDose(o.mg)}`;
+      b.onclick=()=>{S.doseMg=o.mg;render();haptic();};
+      d.appendChild(b);});
+    if(n.act==='water'){
+      const b=document.createElement('button'); b.textContent=n.btn;
+      b.onclick=()=>{const w=bestWater(S.mg,S.doseMg); if(w){S.water=w.w;render();haptic();}};
+      d.appendChild(b);}
+    nc.appendChild(d);});
+
+  document.getElementById('formulas').innerHTML=
+    `<p>концентрация = ${nf(S.mg,0)} мг ÷ ${nf(S.water,1)} мл = <b>${nf(r.conc,2)} мг/мл</b></p>
+     <p>цена деления = ${nf(S.mg,0)} ÷ (${nf(S.water,1)} × 100) = <b>${nf(r.mpu,3)} мг</b></p>
+     <p>объём дозы = ${nf(S.doseMg,2)} ÷ ${nf(r.conc,2)} = <b>${nf(r.vol,3)} мл</b></p>
+     <p>деления = ${nf(r.vol,3)} × 100 = <b>${nf(r.units,1)}</b></p>
+     <p>доз во флаконе = ${nf(S.mg,0)} ÷ ${nf(S.doseMg,2)} = <b>${r.doses}</b></p>`;
+
+  document.getElementById('dose').value =
+    S.unit==='mg'?nf(S.doseMg,2):String(Math.round(S.doseMg*1000));
+  document.getElementById('perDay').textContent=S.perDay;
+  saveState();
+}
+
+/* ---------- ввод ---------- */
+function touch(){
+  if(S.touched) return; S.touched=true;
+  document.getElementById('tag').style.display='none';
+  document.getElementById('card').classList.remove('example');
+}
+const num=v=>{const x=parseFloat(String(v).replace(',','.'));return isFinite(x)?x:0;};
+
+document.getElementById('dose').addEventListener('input',e=>{
+  touch(); const v=num(e.target.value);
+  S.doseMg=S.unit==='mg'?v:v/1000; renderSoft();});
+document.getElementById('unit').onchange=e=>{S.unit=e.target.value;render();};
+document.getElementById('vialCustom').addEventListener('input',e=>{
+  touch(); const v=num(e.target.value); if(v>0){S.mg=v;renderSoft();}});
+document.getElementById('waterCustom').addEventListener('input',e=>{
+  touch(); const v=num(e.target.value); if(v>0){S.water=v;renderSoft();}});
+function renderSoft(){const f=document.activeElement;render();if(f&&f.focus)f.focus();}
+
+document.getElementById('dPlus').onclick=()=>{touch();
+  S.doseMg=Math.max(0,S.doseMg+mgPerUnit(S.mg,S.water));render();haptic();};
+document.getElementById('dMinus').onclick=()=>{touch();
+  S.doseMg=Math.max(0,S.doseMg-mgPerUnit(S.mg,S.water));render();haptic();};
+document.getElementById('pPlus').onclick=()=>{touch();S.perDay++;render();};
+document.getElementById('pMinus').onclick=()=>{touch();S.perDay=Math.max(1,S.perDay-1);render();};
+document.getElementById('pickWater').onclick=()=>{touch();
+  const w=bestWater(S.mg,S.doseMg); if(w){S.water=w.w;render();haptic();}};
+
+/* ---------- обратный режим ---------- */
+function setRev(on){
+  S.rev=on;
+  document.getElementById('fwd').style.display=on?'none':'block';
+  document.getElementById('rev').style.display=on?'block':'none';
+  document.getElementById('flip').textContent=on
+    ?'↔ вернуться: считать деления по дозе':'↔ посчитать наоборот: набрал N делений';
+  if(on) document.getElementById('uIn').value=String(calc(S).r);
+  revUpdate();
+}
+document.getElementById('flip').onclick=()=>{touch();setRev(!S.rev);};
+document.getElementById('unitsBig').onclick=()=>{touch();setRev(true);};
+document.getElementById('uIn').addEventListener('input',()=>{touch();revUpdate();});
+function revUpdate(){
+  if(!S.rev){render();return;}
+  const u=num(document.getElementById('uIn').value), mpu=mgPerUnit(S.mg,S.water);
+  document.getElementById('revDose').textContent='= '+fmtDose(u*mpu);
+  document.getElementById('subRev').textContent=nf(u/100,2)+' мл · при '
+    +nf(S.mg,0)+' мг и '+nf(S.water,1)+' мл';
+  drawSyringe(u);
+}
+/* перетаскивание поршня */
+(function(){
+  const svg=document.getElementById('syr'); let drag=false;
+  const upd=e=>{
+    const b=svg.getBoundingClientRect();
+    const x=((e.touches?e.touches[0].clientX:e.clientX)-b.left)/b.width*340;
+    let u=Math.round((x-14)/(326-14)*SYR.capacity);
+    u=Math.max(0,Math.min(SYR.capacity,u));
+    if(!S.rev) setRev(true);
+    document.getElementById('uIn').value=String(u); revUpdate(); haptic();};
+  svg.addEventListener('pointerdown',e=>{touch();drag=true;svg.setPointerCapture(e.pointerId);upd(e);});
+  svg.addEventListener('pointermove',e=>{if(drag)upd(e);});
+  svg.addEventListener('pointerup',()=>{drag=false;});
+})();
+
+/* ---------- Telegram ---------- */
+const tg=window.Telegram&&window.Telegram.WebApp;
+const inTG=!!(tg&&tg.initData!==undefined&&tg.platform&&tg.platform!=='unknown');
+function haptic(){try{tg&&tg.HapticFeedback.selectionChanged();}catch(e){}}
+function applyTheme(){
+  if(!tg) return; const p=tg.themeParams||{}, r=document.documentElement.style;
+  const set=(k,v)=>{if(v)r.setProperty(k,v);};
+  set('--bg',p.bg_color);set('--text',p.text_color);set('--hint',p.hint_color);
+  set('--card',p.secondary_bg_color);set('--accent',p.button_color);
+  set('--accent-text',p.button_text_color);
+}
+function shareText(){
+  const r=calc(S);
+  return `Флакон ${nf(S.mg,0)} мг + ${nf(S.water,1)} мл воды\n`
+   +`Концентрация ${nf(r.conc,2)} мг/мл, деление ${fmtDose(r.mpu)}\n`
+   +`Доза ${fmtDose(S.doseMg)} = ${r.exact?r.r:nf(r.units,1)} делений (${nf(r.vol,2)} мл)\n`
+   +`Доз во флаконе ${r.doses}, хватит на ${fmtDays(r.days)} дн.`;
+}
+function doShare(){
+  const t=shareText();
+  if(navigator.clipboard) navigator.clipboard.writeText(t).catch(()=>{});
+  if(tg&&tg.showAlert) tg.showAlert('Расчёт скопирован:\n\n'+t); else alert(t);
+}
+document.getElementById('share').onclick=doShare;
+
+/* ---------- хранилище ---------- */
+const store={
+  set(k,v){ if(inTG&&tg.CloudStorage) tg.CloudStorage.setItem(k,v,()=>{});
+            try{localStorage.setItem(k,v);}catch(e){} },
+  get(k){ return new Promise(res=>{
+      if(inTG&&tg.CloudStorage) tg.CloudStorage.getItem(k,(e,v)=>res(v||localGet(k)));
+      else res(localGet(k)); }); }
+};
+function localGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function saveState(){store.set('state',JSON.stringify(S));}
+document.getElementById('saveBtn').onclick=async()=>{
+  const n=document.getElementById('saveName').value.trim(); if(!n)return;
+  const raw=await store.get('vials'); const list=raw?JSON.parse(raw):[];
+  list.unshift({n,mg:S.mg,water:S.water,doseMg:S.doseMg,perDay:S.perDay,
+    d:new Date().toLocaleDateString('ru-RU')});
+  store.set('vials',JSON.stringify(list.slice(0,10)));
+  document.getElementById('saveName').value=''; showSaved();
+};
+async function showSaved(){
+  const raw=await store.get('vials'); const list=raw?JSON.parse(raw):[];
+  const el=document.getElementById('savedList');
+  el.innerHTML=list.length?'':'<span style="color:var(--hint)">пока пусто</span>';
+  list.forEach((v,i)=>{
+    const d=document.createElement('div'); d.className='note info';
+    d.style.cursor='pointer';
+    d.textContent=`${v.n} — ${nf(v.mg,0)} мг / ${nf(v.water,1)} мл / ${fmtDose(v.doseMg)} · ${v.d}`;
+    d.onclick=()=>{S.mg=v.mg;S.water=v.water;S.doseMg=v.doseMg;S.perDay=v.perDay;touch();render();};
+    el.appendChild(d);});
+}
+
+/* ---------- старт ---------- */
+(async function init(){
+  if(inTG){ tg.ready(); tg.expand(); applyTheme();
+    tg.onEvent('themeChanged',applyTheme);
+    document.getElementById('h1').style.display='none';
+    document.getElementById('share').style.display='none';
+    tg.MainButton.setText('Скопировать расчёт'); tg.MainButton.show();
+    tg.MainButton.onClick(doShare);
+  }
+  const raw=await store.get('state');
+  if(raw){ try{ const p=JSON.parse(raw); Object.assign(S,p); S.rev=false;
+    if(S.touched){ document.getElementById('tag').style.display='none'; }
+  }catch(e){} }
+  if(!S.touched) document.getElementById('card').classList.add('example');
+  document.getElementById('unit').value=S.unit;
+  render(); showSaved();
+})();
+</script>
+</body>
+</html>
